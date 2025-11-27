@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grow A Flower with Character</title>
+<style>
+:root{--bg:#f3fff0;--accent:#2b7cff;}
+body{margin:0;font-family:Arial,sans-serif;background:var(--bg);display:flex;justify-content:center;align-items:flex-start;}
+.app{width:980px;padding:18px;}
+header{display:flex;justify-content:space-between;align-items:center;margin-top:20px;}
+h1{margin:0;}
+.coins{background:#fff;padding:8px 12px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.08);}
+.nav{position:fixed;top:10px;right:10px;background:#fff;padding:10px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.15);display:flex;gap:10px;z-index:9999;}
+button{padding:8px 12px;border-radius:8px;border:0;background:var(--accent);color:#fff;cursor:pointer;}
+button.secondary{background:#ddd;color:#222;}
+.screen{margin-top:80px;background:#fff;padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);min-height:520px;}
+.plant-area{display:flex;gap:20px;position:relative;}
+.left{width:480px;position:relative;}
+.right{flex:1;}
+.ground{height:320px;background:linear-gradient(#3bb04a 0%,#2fa23f 100%);border-radius:8px;position:relative;overflow:hidden;padding:14px;}
+.seed-row{display:flex;gap:12px;align-items:center;margin-bottom:12px;}
+.seed-pack{width:110px;height:60px;background:#2b7cff;border-radius:6px;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;transform-origin:center;box-shadow:0 6px 14px rgba(0,0,0,.15);}
+.seed-pack .dot{width:28px;height:28px;background:#000;border-radius:50%;}
+.seed-count{position:absolute;top:-12px;right:-12px;background:#fff;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 4px 10px rgba(0,0,0,.12);}
+.flip{transform:rotateY(180deg);transition:transform .6s;}
+.seed{width:8px;height:12px;background:#c8a24e;position:absolute;border-radius:4px;}
+.watering{display:flex;gap:12px;align-items:center;margin-bottom:12px;}
+.can{width:84px;height:56px;background:#86c5ff;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
+.can::after{content:'';position:absolute;left:8px;top:8px;width:8px;height:8px;background:#6ba6e6;border-radius:50%;}
+.pot{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;width:220px;height:80px;}
+.soil{position:absolute;bottom:0;left:0;right:0;height:28px;background:#5b3b2b;border-radius:6px;}
+.stem{width:6px;background:#2e8b3a;position:absolute;left:50%;transform:translateX(-50%);bottom:28px;height:0;border-radius:6px;}
+.flower-top{position:absolute;left:50%;transform:translateX(-50%) translateY(0);bottom:calc(28px + var(--stem-height,0px));opacity:0;}
+.flower-center{width:24px;height:24px;border-radius:50%;background:#ffed00;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.12);}
+.petals{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+.inventory{margin-top:12px;background:#fafafa;padding:10px;border-radius:8px;height:140px;overflow:auto;}
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,60px);gap:8px;}
+.inv-slot{width:60px;height:60px;background:#fff;border-radius:6px;border:1px solid #eee;display:flex;align-items:center;justify-content:center;font-size:12px;position:relative;}
+.index-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;position:relative;}
+.thumb{height:40px;border-radius:6px;border:1px solid #ddd;position:relative;}
+
+/* Character next to flower */
+.character { position:absolute; right:-140px; top:50px; width:120px; height:250px; pointer-events:none; }
+
+/* Head, body, arms, legs styling */
+.character .head { width:60px; height:60px; background:#ffcc99; border-radius:50%; position:absolute; top:0; left:50%; transform:translateX(-50%); border:2px solid #333; z-index:1; }
+.character .hair { width:64px; height:30px; background:#663300; border-radius:50% 50% 0 0; position:absolute; top:-2px; left:50%; transform:translateX(-50%); }
+.character .eye { width:8px; height:8px; background:#000; border-radius:50%; position:absolute; top:22px; }
+.character .eye.left { left:18px; } .character .eye.right { right:18px; }
+.character .mouth { width:20px; height:4px; background:#e34a4a; border-radius:2px; position:absolute; bottom:12px; left:50%; transform:translateX(-50%); }
+.character .body { width:50px; height:100px; background:#2b7cff; position:absolute; top:60px; left:50%; transform:translateX(-50%); border-radius:10px; z-index:1; }
+.character .arm { width:15px; height:70px; background:#ffcc99; position:absolute; top:70px; border-radius:10px; }
+.character .arm.left { left:35px; transform:rotate(10deg); transform-origin:top right; }
+.character .arm.right { left:70px; transform:rotate(-10deg); transform-origin:top left; }
+.character .leg { width:20px; height:80px; background:#444; position:absolute; top:160px; border-radius:8px; }
+.character .leg.left { left:35px; } .character .leg.right { left:55px; }
+.character .shoe { width:22px; height:12px; background:#222; position:absolute; top:228px; border-radius:4px; }
+.character .shoe.left { left:34px; } .character .shoe.right { left:54px; }
+
+/* Full screen character modal */
+#charModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center; }
+#charModal .modal-content { background:#fff; padding:20px; border-radius:10px; width:90%; max-width:400px; display:flex; flex-direction:column; gap:10px; position:relative; }
+#charModal button.option-btn { background:#2b7cff; color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
+#charModal button.option-btn:hover { background:#1a5bcc; }
+#charModal #backBtn { position:absolute; top:10px; left:10px; background:#ddd; color:#222; }
+
+</style>
+</head>
+<body>
+
+<div class="app">
+<header>
+  <h1>Grow A Flower</h1>
+  <div class="coins">Coins: <span id="coinCount">0</span></div>
+  <div class="nav">
+    <button id="startBtn">Start planting</button>
+    <button class="secondary" id="indexBtn">Index</button>
+    <button id="characterBtn">Character</button>
+  </div>
+</header>
+
+<div class="screen">
+  <div id="plantScreen">
+    <div class="plant-area">
+      <div class="left">
+        <div class="seed-row">
+          <div style="position:relative">
+            <div class="seed-pack" id="seedPack"><div class="dot"></div></div>
+            <div class="seed-count" id="seedCount">5x</div>
+          </div>
+          <div style="flex:1">
+            <div class="watering"><div class="can" id="wateringCan">Water</div></div>
+          </div>
+        </div>
+        <div class="ground" id="groundArea">
+          <div class="pot">
+            <div class="soil"></div>
+            <div class="stem" id="stem"></div>
+            <div class="flower-top" id="flowerTop">
+              <div class="petals" id="petalsGroup"></div>
+              <div class="flower-center" id="flowerCenter"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Character next to flower -->
+      <div class="character">
+        <div class="head">
+          <div class="hair" id="charHair"></div>
+          <div class="eye left"></div>
+          <div class="eye right"></div>
+          <div class="mouth" id="charMouth"></div>
+        </div>
+        <div class="body" id="charBody"></div>
+        <div class="arm left"></div>
+        <div class="arm right"></div>
+        <div class="leg left" id="charLegLeft"></div>
+        <div class="leg right" id="charLegRight"></div>
+        <div class="shoe left" id="charShoeLeft"></div>
+        <div class="shoe right" id="charShoeRight"></div>
+      </div>
+
+      <div class="right">
+        <div style="font-weight:700;margin-bottom:8px">Inventory</div>
+        <div class="inventory"><div class="inv-grid" id="invGrid"></div></div>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="secondary" id="sellBtn">Sell</button>
+          <button class="secondary" id="buyBtn">Buy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="indexScreen" style="display:none">
+    <h3>Index — 40 flowers to collect</h3>
+    <div class="index-grid" id="indexGrid"></div>
+  </div>
+</div>
+</div>
+
+<!-- Character Modal -->
+<div id="charModal">
+  <div class="modal-content">
+    <button id="backBtn">Back</button>
+    <h3>Character Customization (20 Coins per option)</h3>
+    <div style="display:flex;gap:6px;">
+      <button class="option-btn" id="headBtnModal">Head</button>
+      <button class="option-btn" id="chestBtnModal">Chest</button>
+      <button class="option-btn" id="legsBtnModal">Legs</button>
+    </div>
+    <div id="optionsContainer" style="margin-top:12px; display:flex; gap:6px;"></div>
+  </div>
+</div>
+
+<script>
+// -----------------
+// Flower Game Logic
+// -----------------
+let seedPacks=5,coins=0,currentFlower=null,inventory={},collectedSet=new Set();
+const TOTAL_FLOWERS=40,RARE_IDS=[3,12,27];
+const flowerColors=[],rareColorSets={};
+for(let i=0;i<TOTAL_FLOWERS;i++) flowerColors.push(`hsl(${Math.round((i/TOTAL_FLOWERS*360))}deg 80% 60%)`);
+RARE_IDS.forEach(id=>{rareColorSets[id]=[`hsl(${Math.random()*360}deg 80% 55%)`,`hsl(${Math.random()*360}deg 80% 55%)`,`hsl(${Math.random()*360}deg 80% 55%)`,`hsl(${Math.random()*360}deg 80% 55%)`]});
+
+// Tiers
+const TIERS=[{name:'common',prob:0.75,cost:5},{name:'rare',prob:0.2,cost:10},{name:'epic',prob:0.045,cost:20},{name:'legendary',prob:0.004,cost:50},{name:'mythic',prob:0.0005,cost:200},{name:'iconic',prob:0.001,cost:1000}];
+const flowerTiers={};
+for(let i=0;i<TOTAL_FLOWERS;i++){
+  if(RARE_IDS.includes(i)) flowerTiers[i]='iconic';
+  else if(i<10) flowerTiers[i]='common';
+  else if(i<20) flowerTiers[i]='rare';
+  else if(i<28) flowerTiers[i]='epic';
+  else if(i<35) flowerTiers[i]='legendary';
+  else flowerTiers[i]='mythic';
+}
+
+// DOM Elements
+const seedPackEl=document.getElementById('seedPack'),
+seedCountEl=document.getElementById('seedCount'),
+wateringCanEl=document.getElementById('wateringCan'),
+stemEl=document.getElementById('stem'),
+flowerTopEl=document.getElementById('flowerTop'),
+petalsGroup=document.getElementById('petalsGroup'),
+flowerCenter=document.getElementById('flowerCenter'),
+invGrid=document.getElementById('invGrid'),
+coinCountEl=document.getElementById('coinCount'),
+indexGrid=document.getElementById('indexGrid'),
+startBtn=document.getElementById('startBtn'),
+indexBtn=document.getElementById('indexBtn'),
+plantScreen=document.getElementById('plantScreen'),
+indexScreen=document.getElementById('indexScreen'),
+sellBtn=document.getElementById('sellBtn'),
+buyBtn=document.getElementById('buyBtn');
+
+// Save/load
+function saveGame(){localStorage.setItem('growFlowerSave',JSON.stringify({coins,seedPacks,inventory,collected:Array.from(collectedSet)}));}
+function loadGame(){const saved=localStorage.getItem('growFlowerSave');if(saved){const d=JSON.parse(saved);coins=d.coins||0;seedPacks=d.seedPacks||5;inventory=d.inventory||{};collectedSet=new Set(d.collected||[]);updateCoins();updateSeedCount();renderInventory();renderIndex();}}
+loadGame();updateSeedCount();updateCoins();renderInventory();renderIndex();
+
+// -----------------
+// Flower interaction
+// -----------------
+seedPackEl.addEventListener('click',()=>{
+  if(seedPacks<=0) return alert('No seed packs left');
+  seedPackEl.classList.add('flip'); createFallingSeed(); seedPacks--; updateSeedCount();
+  const r=Math.random(); let cumulative=0; let selectedTier='common';
+  for(const t of TIERS){cumulative+=t.prob; if(r<cumulative){selectedTier=t.name; break;}}
+  const possibleIDs=Object.keys(flowerTiers).filter(id=>flowerTiers[id]===selectedTier);
+  currentFlower={id:Number(possibleIDs[Math.floor(Math.random()*possibleIDs.length)]),tier:selectedTier};
+  setTimeout(()=>seedPackEl.classList.remove('flip'),700); saveGame();
+});
+
+wateringCanEl.addEventListener('click',()=>{
+  if(!currentFlower) return alert('Open a seed pack first');
+  wateringCanEl.animate([{transform:'translateY(0)'},{transform:'translateY(-6px)'},{transform:'translateY(0)'}],{duration:500});
+  growPlantSequence(currentFlower); currentFlower=null;
+});
+
+startBtn.addEventListener('click',()=>{plantScreen.style.display='block';indexScreen.style.display='none';});
+indexBtn.addEventListener('click',()=>{plantScreen.style.display='none';indexScreen.style.display='block';});
+
+// Updates
+function updateSeedCount(){seedCountEl.textContent=seedPacks+'x';}
+function updateCoins(){coinCountEl.textContent=coins;}
+
+// Falling seed
+function createFallingSeed(){const s=document.createElement('div');s.className='seed';const a=document.getElementById('groundArea');a.appendChild(s);s.style.left=100+Math.random()*280+'px';s.style.top='40px';s.animate([{transform:'translateY(0)'},{transform:'translateY(220px)'}],{duration:700,easing:'cubic-bezier(.2,.9,.2,1)'});setTimeout(()=>s.remove(),800);}
+
+// Plant growth
+function growPlantSequence(f){
+  stemEl.style.height='0px';flowerTopEl.style.opacity=0;flowerTopEl.style.setProperty('--stem-height','0px');petalsGroup.innerHTML='';
+  setTimeout(()=>{const totalGrow=5000,start=performance.now();function step(now){
+    const t=Math.min(1,(now-start)/totalGrow);const h=Math.round(t*180);stemEl.style.height=h+'px';flowerTopEl.style.setProperty('--stem-height',h+'px');
+    if(t<1) requestAnimationFrame(step);
+    else{showFlowerTop(f.id,f.tier); setTimeout(()=>pluckAndCollect(f.id,f.tier),900);}
+  }requestAnimationFrame(step)},600);
+}
+
+function showFlowerTop(id,tier){
+  flowerTopEl.style.opacity=1; petalsGroup.innerHTML='';
+  for(let i=0;i<6;i++){
+    const p=document.createElement('div'); p.className='petal';
+    p.style.transform=`rotate(${i*60}deg) translateY(-22px)`;
+    p.style.background=(tier==='iconic')?rareColorSets[id][i%4]:flowerColors[id];
+    petalsGroup.appendChild(p);
+  }
+  flowerCenter.style.background=(tier==='iconic')?rareColorSets[id][0]:'#ffed00';
+}
+
+function pluckAndCollect(id,tier){
+  flowerTopEl.animate([{transform:'translateY(0)'},{transform:'translateY(20px)'}],{duration:400});
+  inventory[id]=(inventory[id]||0)+1; collectedSet.add(id);
+  coins+=TIERS.find(t=>t.name===tier).cost; updateCoins();
+  renderInventory(); renderIndex(); saveGame();
+}
+
+// Inventory render
+function renderInventory(){
+  invGrid.innerHTML='';
+  for(const k of Object.keys(inventory)){
+    const id=Number(k); const slot=document.createElement('div'); slot.className='inv-slot';
+    const box=document.createElement('div'); box.style.width='36px'; box.style.height='36px'; box.style.borderRadius='6px';
+    box.style.background=(RARE_IDS.includes(id)?`linear-gradient(45deg, ${rareColorSets[id].join(',')})`:flowerColors[id]);
+    slot.appendChild(box);
+    const count=document.createElement('div'); count.style.position='absolute'; count.style.marginTop='38px'; count.style.fontSize='11px'; count.textContent=inventory[id];
+    slot.appendChild(count); invGrid.appendChild(slot);
+  }
+}
+
+// Index render
+function renderIndex(){
+  indexGrid.innerHTML='';
+  for(let i=0;i<TOTAL_FLOWERS;i++){
+    const t=document.createElement('div'); t.className='thumb'; t.style.background=collectedSet.has(i)?(RARE_IDS.includes(i)?`linear-gradient(45deg, ${rareColorSets[i].join(',')})`:flowerColors[i]):'#ff4d4d';
+    const tierLabel=document.createElement('div'); tierLabel.style.position='absolute'; tierLabel.style.bottom='0'; tierLabel.style.width='100%';
+    tierLabel.style.fontSize='10px'; tierLabel.style.textAlign='center'; tierLabel.style.color='#fff'; tierLabel.style.background='rgba(0,0,0,0.3)';
+    tierLabel.textContent=flowerTiers[i] || 'common'; t.appendChild(tierLabel);
+    indexGrid.appendChild(t);
+  }
+}
+
+// Sell modal
+function openSellModal(){
+  const m=document.createElement('div'); m.className='modal'; m.style.position='fixed'; m.style.inset='0'; m.style.background='rgba(0,0,0,0.4)'; m.style.display='flex'; m.style.justifyContent='center'; m.style.alignItems='center'; m.style.zIndex=10001;
+  const p=document.createElement('div'); p.className='panel'; p.style.background='#fff'; p.style.padding='18px'; p.style.borderRadius='10px'; p.style.minWidth='320px';
+  p.innerHTML=`<h3>Sell a flower</h3><div id='sellList'></div><div style='margin-top:12px;text-align:right'><button id='closeSell' class='secondary'>Cancel</button></div>`;
+  m.appendChild(p); document.body.appendChild(m);
+  const sl=p.querySelector('#sellList');
+  if(Object.keys(inventory).length===0){sl.textContent='No flowers to sell.';} else {
+    for(const k of Object.keys(inventory)){
+      const id=Number(k); const row=document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.alignItems='center'; row.style.marginTop='6px';
+      const sw=document.createElement('div'); sw.style.width='36px'; sw.style.height='28px'; sw.style.borderRadius='6px'; sw.style.border='1px solid #eee';
+      sw.style.background=(RARE_IDS.includes(id)?`linear-gradient(45deg, ${rareColorSets[id].join(',')})`:flowerColors[id]); row.appendChild(sw);
+      const label=document.createElement('div'); label.textContent=`#${id} x${inventory[id]} (${flowerTiers[id]})`; row.appendChild(label);
+      const btn=document.createElement('button'); btn.textContent='Sell'; btn.className='secondary';
+      btn.addEventListener('click',()=>{inventory[id]-=1; if(inventory[id]<=0) delete inventory[id]; coins+=TIERS.find(t=>t.name===flowerTiers[id]).cost; updateCoins(); renderInventory(); renderIndex(); saveGame(); m.remove();}); row.appendChild(btn); sl.appendChild(row);
+    }
+  }
+  p.querySelector('#closeSell').addEventListener('click',()=>m.remove());
+}
+
+// Buy modal
+function openBuyModal(){
+  const m=document.createElement('div'); m.className='modal'; m.style.position='fixed'; m.style.inset='0'; m.style.background='rgba(0,0,0,0.4)'; m.style.display='flex'; m.style.justifyContent='center'; m.style.alignItems='center'; m.style.zIndex=10001;
+  const p=document.createElement('div'); p.className='panel'; p.style.background='#fff'; p.style.padding='18px'; p.style.borderRadius='10px'; p.style.minWidth='320px';
+  p.innerHTML=`<h3>Buy seed packs</h3><div style='margin-top:8px'>Each costs 10 coins.</div><div style='margin-top:12px'><button id='buy1' class='btn'>Buy 1</button> <button id='buy5' class='btn'>Buy 5</button></div><div style='margin-top:12px;text-align:right'><button id='closeBuy' class='secondary'>Cancel</button></div>`;
+  m.appendChild(p); document.body.appendChild(m);
+  p.querySelector('#buy1').addEventListener('click',()=>{if(coins<10)return alert('Not enough coins'); coins-=10;seedPacks++;updateCoins();updateSeedCount();saveGame();m.remove();});
+  p.querySelector('#buy5').addEventListener('click',()=>{if(coins<50)return alert('Not enough coins'); coins-=50;seedPacks+=5;updateCoins();updateSeedCount();saveGame();m.remove();});
+  p.querySelector('#closeBuy').addEventListener('click',()=>m.remove());
+}
+
+sellBtn.addEventListener('click',openSellModal);
+buyBtn.addEventListener('click',openBuyModal);
+
+// -----------------
+// Character customization logic
+// -----------------
+const charBtn=document.getElementById('characterBtn');
+const charModal=document.getElementById('charModal');
+const backBtn=document.getElementById('backBtn');
+const optionsContainer=document.getElementById('optionsContainer');
+
+const charHair=document.getElementById('charHair');
+const charMouth=document.getElementById('charMouth');
+const charBody=document.getElementById('charBody');
+const charLegLeft=document.getElementById('charLegLeft');
+const charLegRight=document.getElementById('charLegRight');
+const charShoeLeft=document.getElementById('charShoeLeft');
+const charShoeRight=document.getElementById('charShoeRight');
+
+let selectedPart='head';
+
+// Options
+const charOptions={
+  head:[{name:'Blonde Hair',apply:()=>charHair.style.background='#FFD700'},{name:'Black Hair',apply:()=>charHair.style.background='#000'},{name:'Smile',apply:()=>charMouth.style.background='#e34a4a'}],
+  chest:[{name:'Blue Shirt',apply:()=>charBody.style.background='#2b7cff'},{name:'Red Shirt',apply:()=>charBody.style.background='#ff3b3b'},{name:'Green Shirt',apply:()=>charBody.style.background='#2fa23f'}],
+  legs:[{name:'Black Pants',apply:()=>{charLegLeft.style.background='#111'; charLegRight.style.background='#111'; charShoeLeft.style.background='#222'; charShoeRight.style.background='#222'}},{name:'Blue Pants',apply:()=>{charLegLeft.style.background='#2b7cff'; charLegRight.style.background='#2b7cff'; charShoeLeft.style.background='#444'; charShoeRight.style.background='#444'}},{name:'Gray Pants',apply:()=>{charLegLeft.style.background='#777'; charLegRight.style.background='#777'; charShoeLeft.style.background='#555'; charShoeRight.style.background='#555'}}]
+};
+
+function renderCharOptions(part){
+  optionsContainer.innerHTML='';
+  charOptions[part].forEach((opt,index)=>{
+    const btn=document.createElement('button');
+    btn.textContent=opt.name+' (20c)';
+    btn.className='option-btn';
+    btn.addEventListener('click',()=>{
+      if(coins<20){alert('Not enough coins'); return;}
+      coins-=20; updateCoins();
+      opt.apply();
+      saveGame();
+    });
+    optionsContainer.appendChild(btn);
+  });
+}
+
+document.getElementById('headBtnModal').addEventListener('click',()=>{selectedPart='head'; renderCharOptions('head');});
+document.getElementById('chestBtnModal').addEventListener('click',()=>{selectedPart='chest'; renderCharOptions('chest');});
+document.getElementById('legsBtnModal').addEventListener('click',()=>{selectedPart='legs'; renderCharOptions('legs');});
+
+charBtn.addEventListener('click',()=>{charModal.style.display='flex'; renderCharOptions(selectedPart);});
+backBtn.addEventListener('click',()=>{charModal.style.display='none';});
+</script>
+
+</body>
+</html>
